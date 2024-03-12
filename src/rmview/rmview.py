@@ -1,3 +1,4 @@
+import argparse
 import pathlib
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -47,15 +48,16 @@ class rMViewApp(QApplication):
 
   cloned_frames = set()
 
-  def __init__(self, args):
-    super(rMViewApp, self).__init__(args)
+  def __init__(self, config_files, override_orientation=None):
+    super(rMViewApp, self).__init__([])
     path = QStandardPaths.standardLocations(QStandardPaths.ConfigLocation)[0]
     pathlib.Path(path).mkdir(parents=True, exist_ok=True)
     self.CONFIG_DIR = path
     self.DEFAULT_CONFIG = os.path.join(self.CONFIG_DIR, 'rmview.json')
     self.LOCAL_KNOWN_HOSTS = os.path.join(self.CONFIG_DIR, 'rmview_known_hosts')
 
-    config_files = [] if len(args) < 2 else [args[1]]
+    if config_files is None:
+      config_files = []
     config_files += ['rmview.json']
     rmview_conf = os.environ.get("RMVIEW_CONF")
     if rmview_conf is not None:
@@ -78,6 +80,10 @@ class rMViewApp(QApplication):
     self._checkConfigFilePermissions(self.config_file)
 
     self.config.setdefault('ssh', {})
+
+    if override_orientation:
+      self.config["orientation"] = override_orientation
+
     self.pen_size = self.config.get('pen_size', self.pen_size)
     self.trailPen = QPen(QColor(self.config.get('pen_color', 'red')), max(1, self.pen_size // 3))
     self.trailPen.setCapStyle(Qt.RoundCap)
@@ -586,19 +592,34 @@ class rMViewApp(QApplication):
 
 def rmViewMain():
   log.setLevel(logging.INFO)
-  if len(sys.argv) > 1:
-    if sys.argv[1] == "-v":
-      log.setLevel(logging.DEBUG)
-      import twisted.python
-      twisted.python.log.startLogging(sys.stdout)
-      del sys.argv[1]
-    elif sys.argv[1] == "-q":
-      log.setLevel(logging.ERROR)
-      del sys.argv[1]
+
+  parser = argparse.ArgumentParser()
+
+  parser.add_argument('-v', '--verbose', action='store_true')
+  parser.add_argument('-q', '--quiet', action='store_true')
+  parser.add_argument('config_files', nargs="?")
+
+  orientation_group = parser.add_mutually_exclusive_group()
+  orientation_group.add_argument("-L", '--landscape', action='store_true')
+  orientation_group.add_argument("-P", '--portrait', action='store_true')
+
+  args = parser.parse_args()
+  if args.verbose:
+    log.setLevel(logging.DEBUG)
+    import twisted.python
+    twisted.python.log.startLogging(sys.stdout)
+  elif args.quiet:
+    log.setLevel(logging.ERROR)
+
+  override_orientation = None
+  if args.landscape:
+    override_orientation = "landscape"
+  elif args.portrait:
+    override_orientation = "portrait"
 
   log.info("STARTING: %s", time.asctime())
   QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-  app = rMViewApp(sys.argv)
+  app = rMViewApp(config_files=args.config_files, override_orientation=override_orientation)
   # We register custom signal handler so we can gracefuly stop app with CTRL+C when QT main loop is
   # running
   signal.signal(signal.SIGINT, lambda *args: app.quit())

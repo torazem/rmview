@@ -31,12 +31,11 @@ class genResourcesEggInfo(egg_info):
         egg_info.run(self)
 
 setup(
-  name='rmview',
+  name='rmview-fork',
   version='3.1.3',
-  url='https://github.com/bordaigorl/rmview',
-  description='rMview: a fast live viewer for reMarkable',
-  author='bordaigorl',
-  author_email='emanuele.dosualdo@gmail.com',
+  url='https://github.com/torazem/rmview',
+  description='A personalised fork of rMview by bordaigorl',
+  author='torazem',
   classifiers=[
     'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
   ],
