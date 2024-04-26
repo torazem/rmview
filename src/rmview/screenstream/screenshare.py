@@ -97,7 +97,7 @@ class ScreenShareStream(QRunnable):
   """
   def get_userid(self):
     with self.ssh.open_sftp() as sftp:
-      with sftp.file('/etc/remarkable.conf') as f:
+      with sftp.file('/home/root/.config/remarkable/xochitl.conf') as f:
         file_content = f.read().decode()
 
     cfg = configparser.ConfigParser(strict=False)
