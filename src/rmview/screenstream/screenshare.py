@@ -96,8 +96,21 @@ class ScreenShareStream(QRunnable):
   reads the usedId from deviceToken from the config file on the rm
   """
   def get_userid(self):
+    files = ['/etc/remarkable.conf', '/home/root/.config/remarkable/xochitl.conf']
     with self.ssh.open_sftp() as sftp:
-      with sftp.file('/home/root/.config/remarkable/xochitl.conf') as f:
+      for f in files:
+        try:
+          if sftp.stat(f):
+            file = f
+            break 
+        except Exception:
+          pass
+      if not file:
+        # Never should be here or unhealthy device
+        log.error('No remote config file detected on your Remarkable.')
+      
+      log.info('Remote config file detected: ' + file)
+      with sftp.file(file) as f:
         file_content = f.read().decode()
 
     cfg = configparser.ConfigParser(strict=False)
